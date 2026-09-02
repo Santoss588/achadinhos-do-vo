@@ -1,0 +1,52 @@
+name: Achadinhos do Vô
+
+on:
+  workflow_dispatch:
+  schedule:
+    # GitHub usa UTC. Executa aproximadamente a cada hora.
+    - cron: "0 * * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependências
+        run: pip install -r requirements.txt
+
+      - name: Rodar automação
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+          MIN_DISCOUNT: "20"
+          MAX_PRICE: "1000"
+          MAX_POSTS: "5"
+
+          SEARCH_TERMS: "fone bluetooth,smartwatch,air fryer,creatina,furadeira,organizador de cozinha,acessórios automotivos,teclado mecânico,mouse gamer"
+        run: python bot.py
+
+      - name: Salvar histórico
+        run: |
+          git config user.name "Achadinhos do Vô Bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add data/sent.json
+
+          if git diff --cached --quiet; then
+            echo "Nada novo para salvar."
+          else
+            git commit -m "Atualiza ofertas publicadas"
+            git push
+          fi
